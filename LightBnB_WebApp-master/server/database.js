@@ -1,20 +1,12 @@
 const properties = require('./json/properties.json');
 const users = require('./json/users.json');
-const { Pool } = require('pg');
-
-/// Users
-const pool = new Pool({
-  user: 'vagrant',
-  password: '123',
-  host: 'localhost',
-  database: 'lightbnb'
-});
+const db = require('./db');
 
 /**
  * Get a single user from the database given their email.
  */
 const getUserWithEmail = function(email) {
-  return pool.query(`
+  return db.query(`
   SELECT * FROM users
   WHERE email = $1`, [email])
   .then(res => res.rows[0] || null);
@@ -25,7 +17,7 @@ exports.getUserWithEmail = getUserWithEmail;
  * Get a single user from the database given their id.
  */
 const getUserWithId = function(id) {
-  return pool.query(`
+  return db.query(`
   SELECT * FROM users
   WHERE id = $1`, [id])
   .then(res => res.rows[0] || null);
@@ -37,7 +29,7 @@ exports.getUserWithId = getUserWithId;
  * Add a new user to the database.
  */
 const addUser =  function(user) {
-  return pool.query(`
+  return db.query(`
   INSERT INTO users (name, email, password) 
   VALUES ($1, $2, $3)
   RETURNING *`, [user.name, user.email, user.password])
@@ -51,7 +43,7 @@ exports.addUser = addUser;
  * Get all reservations for a single user.
  */
 const getAllReservations = function(guest_id, limit = 10) {
-  return pool.query(`
+  return db.query(`
   SELECT properties.*, reservations.*, avg(rating) as average_rating
   FROM reservations
   JOIN properties ON reservations.property_id = properties.id
@@ -116,11 +108,9 @@ const getAllProperties = function(options, limit = 10) {
   LIMIT $${queryParams.length};
   `;
   
-  console.log(queryString, queryParams);
-  return pool.query(queryString, queryParams)
+  return db.query(queryString, queryParams)
   .then(res => res.rows);
 }
-
 exports.getAllProperties = getAllProperties;
 
 
@@ -128,12 +118,12 @@ exports.getAllProperties = getAllProperties;
  * Add a property to the database
 */
 const addProperty = function(property) {
-  return pool.query(`
+  return db.query(`
   INSERT INTO properties (owner_id, title, description, thumbnail_photo_url, cover_photo_url, cost_per_night, street, city, province, post_code, country, parking_spaces, number_of_bathrooms, number_of_bedrooms)
   VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
   RETURNING *;`,
-  [property.owner_id, property.title, property.description, property.thumbnail_photo_url, `${property.cover_photo_url}`, `${property.cost_per_night}`, `${property.street}`, `${property.city}`, `${property.province}`, `${property.post_code}`, `${property.country}`, `${property.parking_spaces}`, `${property.number_of_bathrooms}`, `${property.number_of_bedrooms}`])
-  .then(res => res.rows[0] || null);
+  [`${property.owner_id}`, `${property.title}`, `${property.description}`, `${property.thumbnail_photo_url}`, `${property.cover_photo_url}`, `${property.cost_per_night}`, `${property.street}`, `${property.city}`, `${property.province}`, `${property.post_code}`, `${property.country}`, `${property.parking_spaces}`, `${property.number_of_bathrooms}`, `${property.number_of_bedrooms}`])
+  .then(res => res.rows);
 }
 
 exports.addProperty = addProperty;
